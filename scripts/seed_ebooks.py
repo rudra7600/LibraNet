@@ -261,27 +261,13 @@ def seed_ebook(title, author):
 
 
 def run_seeder():
-    # Delete existing ebook data
-    try:
-        print("--- Deleting all existing ebook data... ---")
-        formats_deleted = db.session.query(EbookFormat).delete()
-        books_deleted = db.session.query(Ebook).delete()
-        
-        db.session.commit()
-        print(f"--- Deleted {books_deleted} books and {formats_deleted} formats. ---")
-    except Exception as e:
-        print(f"  [Error deleting data] {e}")
-        db.session.rollback()
-        return
+    print("--- Adding ebooks (existing books will be preserved) ---")
 
-    print("--- Starting new ebook seed... ---")
-    
     for book in BOOKS_TO_SEED:
         seed_ebook(book['title'], book['author'])
-        
+
     print("--- Seeding Complete ---")
-
-
+    print(f"Total ebooks in database: {Ebook.query.count()}")
 if __name__ == "__main__":
     app = create_app()
     with app.app_context():

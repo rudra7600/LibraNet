@@ -17,7 +17,7 @@ class LibraNetChatbot:
         
         # Initialize Groq LLM with LangChain
         self.llm = ChatGroq(
-            model="llama-3.3-70b-versatile",  # Fast and powerful model
+           model="openai/gpt-oss-20b",  # Fast and powerful model
             temperature=0.7,
             max_tokens=1024,
             api_key=api_key

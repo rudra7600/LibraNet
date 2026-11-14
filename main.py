@@ -9,4 +9,4 @@ app = create_app()
 port = 8080
 if __name__ == '__main__':
     # This runs the app using Flask's simpler, built-in server
-    app.run(port=port,debug=True)
+    app.run(port=port, debug=False)

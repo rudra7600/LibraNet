@@ -181,11 +181,13 @@ def seed_audiobook(title_query):
         print(f"[Fetching] '{title_query}' from LibriVox...")
         
         # URL-safe title
-        safe_title = urllib.parse.quote_plus(title_query)
-        
-        api_url = f"{LIBRIVOX_API_URL}?title={safe_title}&format=json&extended=1"
-        
-        response = requests.get(api_url)
+        params = {
+            "title": f"^{title_query}",
+            "format": "json",
+            "extended": 1
+}
+
+        response = requests.get(LIBRIVOX_API_URL, params=params, timeout=30)
         response.raise_for_status() # 404 error check
         
         data = response.json()
@@ -291,25 +293,13 @@ def run_seeder():
         print("Error: LIBRIVOX_API_URL environment variable not set.")
         return
 
-    # Pehle puraana saara data delete karein
-    try:
-        print("--- Deleting all existing audiobook data... ---")
-        chapters_deleted = db.session.query(AudiobookChapter).delete()
-        books_deleted = db.session.query(Audiobook).delete()
-        
-        db.session.commit()
-        print(f"--- Deleted {books_deleted} books and {chapters_deleted} chapters. ---")
-    except Exception as e:
-        print(f"  [Error deleting data] {e}")
-        db.session.rollback()
-        return
+    print("--- Adding audiobooks without deleting existing data ---")
 
-    print("--- Starting new audiobook seed... ---")
-    
-    for book_title in BOOKS_TO_SEED: 
+    for book_title in BOOKS_TO_SEED[:5]:
         seed_audiobook(book_title)
-        
+
     print("--- Seeding Complete ---")
+    print(f"Total audiobooks: {Audiobook.query.count()}")
 
 if __name__ == "__main__":
     app = create_app()

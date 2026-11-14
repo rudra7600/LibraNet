@@ -52,5 +52,5 @@ class Config:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
     os.environ["LIBRIVOX_API_URL"] = os.getenv(
     "LIBRIVOX_API_URL",
-    "https://librivox.org/api/feed/audiobooks"
+    "https://librivox.org/api/feed/audiobooks/"
 )
