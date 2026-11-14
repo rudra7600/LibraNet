@@ -2,6 +2,7 @@
 
 import os
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
 # Find the .env file in the root directory and load its variables
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -19,6 +20,22 @@ class Config:
 
     # Database configuration
     # Reads the database URL from the .env file.
+    from urllib.parse import quote_plus
+
+# Railway MySQL configuration
+mysql_host = os.getenv('MYSQLHOST')
+mysql_port = os.getenv('MYSQLPORT', '3306')
+mysql_user = os.getenv('MYSQLUSER')
+mysql_password = os.getenv('MYSQLPASSWORD')
+mysql_database = os.getenv('MYSQLDATABASE')
+
+if mysql_host and mysql_user and mysql_password and mysql_database:
+    SQLALCHEMY_DATABASE_URI = (
+        f"mysql+pymysql://{quote_plus(mysql_user)}:"
+        f"{quote_plus(mysql_password)}@"
+        f"{mysql_host}:{mysql_port}/{mysql_database}"
+    )
+else:
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
 
     # This is a Flask-SQLAlchemy configuration setting that we can disable
