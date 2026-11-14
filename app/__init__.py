@@ -4,7 +4,6 @@ from flask_migrate import Migrate
 from config import Config
 from flask_login import LoginManager
 from flask_mail import Mail # type: ignore
-db.create_all()
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -29,5 +28,6 @@ def create_app(config_class=Config):
     # Import models for Flask-Migrate
     with app.app_context():
         from app.models import user, publication, physical_book, ebook, audiobook, loan, fine, subscription, otp
+        db.create_all()
 
     return app
