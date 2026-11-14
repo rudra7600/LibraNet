@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from config import Config
 from flask_login import LoginManager
 from flask_mail import Mail # type: ignore
+db.create_all()
 
 db = SQLAlchemy()
 migrate = Migrate()
