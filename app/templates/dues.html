@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}My Dues{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 860px; margin: 2rem auto;">
+  <h1>My Dues</h1>
+  {% if fines %}
+  <table class="table" style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:.5rem;">Issued</th>
+        <th style="text-align:right; padding:.5rem;">Amount</th>
+        <th style="text-align:center; padding:.5rem;">Status</th>
+        <th style="text-align:right; padding:.5rem;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for fine in fines %}
+      <tr style="border-top:1px solid #e5e7eb;">
+        <td style="padding:.5rem;">{{ fine.issued_date.strftime('%Y-%m-%d') }}</td>
+        <td style="padding:.5rem; text-align:right;">₹ {{ '%.2f'|format(fine.amount) }}</td>
+        <td style="padding:.5rem; text-align:center;">{{ fine.status.value|title }}</td>
+        <td style="padding:.5rem; text-align:right;">
+          {% if fine.status.value == 'pending' %}
+          <form method="post" action="{{ url_for('main.pay_fine', fine_id=fine.id) }}">
+            <button class="btn btn-primary" type="submit">Pay</button>
+          </form>
+          {% else %}
+          <span>Paid</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No dues. 🎉</p>
+  {% endif %}
+</div>
+{% endblock %}

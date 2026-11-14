@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Subscription Successful{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 720px; margin: 2rem auto; text-align:center;">
+  <div style="background:#fff; border:1px solid #e5e7eb; border-radius: 12px; padding: 2rem;">
+    <div style="font-size:3rem;">🎉</div>
+    <h1>You're subscribed!</h1>
+    <p style="color:#6b7280;">Your {{ plan.name }} plan is now active.</p>
+    <a class="btn btn-primary" href="{{ url_for('main.subscriptions') }}">Manage subscription</a>
+  </div>
+</div>
+{% endblock %}

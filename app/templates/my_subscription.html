@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}My Subscription{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 860px; margin: 2rem auto;">
+  <h1>My Subscription</h1>
+  <div style="background:#fff; border:1px solid #e5e7eb; border-radius: 12px; padding: 1.25rem;">
+    <p>Current plan: <strong>{{ subscription.tier.value.title() }}</strong></p>
+  </div>
+</div>
+{% endblock %}

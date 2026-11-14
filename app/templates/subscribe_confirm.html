@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Confirm Subscription{% endblock %}
+
+{% block extra_css %}
+<style>
+    .subscription-confirm-container {
+        max-width: 600px;
+        margin: 4rem auto;
+        padding: 2rem;
+    }
+
+    .confirm-card {
+        background: var(--card-bg, #fff);
+        border: 1px solid var(--border-color, #e5e7eb);
+        border-radius: 16px;
+        padding: 3rem 2.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .confirm-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .confirm-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .confirm-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-primary, #1f2937);
+        margin-bottom: 0.5rem;
+    }
+
+    .confirm-subtitle {
+        font-size: 1rem;
+        color: var(--text-secondary, #6b7280);
+    }
+
+    .plan-summary {
+        background: var(--bg-secondary, #f9fafb);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .plan-summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .plan-summary-row:last-child {
+        margin-bottom: 0;
+        padding-top: 0.75rem;
+        border-top: 2px solid var(--border-color, #e5e7eb);
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+
+    .plan-summary-label {
+        color: var(--text-secondary, #6b7280);
+        font-size: 0.95rem;
+    }
+
+    .plan-summary-value {
+        color: var(--text-primary, #1f2937);
+        font-weight: 600;
+    }
+
+    .features-preview {
+        margin: 2rem 0;
+    }
+
+    .features-preview h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-primary, #1f2937);
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .features-list {
+        list-style: none;
+        padding: 0;
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    .features-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-secondary, #6b7280);
+        font-size: 0.9rem;
+    }
+
+    .features-list li i {
+        color: #10b981;
+        font-size: 1rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 1rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #6366f1, #ec4899);
+        color: white;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-secondary {
+        background: transparent;
+        color: var(--text-secondary, #6b7280);
+        border: 2px solid var(--border-color, #d1d5db);
+    }
+
+    .btn-secondary:hover {
+        border-color: #6366f1;
+        color: var(--text-primary, #1f2937);
+    }
+
+    .secure-note {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: var(--text-secondary, #9ca3af);
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .secure-note i {
+        color: #10b981;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="subscription-confirm-container">
+    <div class="confirm-card">
+        <div class="confirm-header">
+            <div class="confirm-icon">🚀</div>
+            <h1 class="confirm-title">Confirm Your Subscription</h1>
+            <p class="confirm-subtitle">You're upgrading to the <strong>{{ plan.name }}</strong> plan</p>
+        </div>
+
+        <div class="plan-summary">
+            <div class="plan-summary-row">
+                <span class="plan-summary-label">Plan</span>
+                <span class="plan-summary-value">{{ plan.name }}</span>
+            </div>
+            <div class="plan-summary-row">
+                <span class="plan-summary-label">Billing Period</span>
+                <span class="plan-summary-value">{{ plan.duration_days // 30 }} months</span>
+            </div>
+            <div class="plan-summary-row">
+                <span class="plan-summary-label">Price</span>
+                <span class="plan-summary-value">₹{{ plan.price }}</span>
+            </div>
+            <div class="plan-summary-row">
+                <span>Total</span>
+                <span>₹{{ plan.price }}</span>
+            </div>
+        </div>
+
+        <div class="features-preview">
+            <h3>What's included</h3>
+            <ul class="features-list">
+                {% for feature in plan.features[:5] %}
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>{{ feature }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="action-buttons">
+            <a href="{{ url_for('main.subscriptions') }}" class="btn btn-secondary">
+                Cancel
+            </a>
+            <button id="rzp-button" class="btn btn-primary">
+                <i class="fas fa-lock"></i> Pay ₹{{ plan.price }}
+            </button>
+        </div>
+
+        <div class="secure-note">
+            <i class="fas fa-shield-alt"></i>
+            <span>Secure payment powered by Razorpay</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    document.getElementById('rzp-button').onclick = function(e) {
+        e.preventDefault();
+        
+        const options = {
+            "key": "{{ razorpay_key_id }}",
+            "amount": {{ plan.price * 100 }}, // Amount in paise
+            "currency": "INR",
+            "name": "LibraNet",
+            "description": "{{ plan.name }} Subscription",
+            "image": "/static/images/logo.png",
+            "handler": function (response) {
+                // Send payment details to server for verification
+                fetch("{{ url_for('main.verify_payment') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        tier: "{{ tier.name.lower() }}"
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = "{{ url_for('main.subscription_success', subscription_id=0) }}".replace('/0', '/' + data.subscription_id);
+                    } else {
+                        alert('Payment verification failed: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please contact support.');
+                });
+            },
+            "prefill": {
+                "name": "{{ current_user.name }}",
+                "email": "{{ current_user.email }}",
+                "contact": "{{ current_user.phone or '' }}"
+            },
+            "theme": {
+                "color": "#6366f1"
+            },
+            "modal": {
+                "ondismiss": function() {
+                    console.log('Payment cancelled by user');
+                }
+            }
+        };
+        
+        const rzp = new Razorpay(options);
+        rzp.open();
+    };
+</script>
+{% endblock %}

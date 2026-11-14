@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}E-books{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/books.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ebooks.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="books-page ebooks-page">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">📚 E-books Collection</h1>
+            <p class="page-description">Read digital books anytime, anywhere</p>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filters-bar">
+            <form method="GET" action="{{ url_for('main.list_ebooks') }}" style="display: contents;">
+                <div class="filter-group" style="flex: 1;">
+                    <label for="search" class="sr-only">Search</label>
+                    <div class="search-wrapper">
+                        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input 
+                            type="search" 
+                            name="q" 
+                            id="search"
+                            placeholder="Search e-books..." 
+                            class="search-input"
+                            value="{{ request.args.get('q', '') }}"
+                        >
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="format" class="filter-label">Format:</label>
+                    <select name="format" id="format" class="filter-select">
+                        <option value="">TXT Only</option>
+                        <option value="txt" selected>TXT</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <span>Search</span>
+                </button>
+            </form>
+        </div>
+        
+        <!-- Results Info -->
+        <div class="results-info">
+            <div class="results-count">
+                {% if ebooks %}
+                    Showing <strong>{{ ebooks|length }}</strong> e-books
+                {% else %}
+                    No e-books found
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- E-books Grid -->
+        {% if ebooks %}
+        <div class="books-grid">
+            {% for ebook in ebooks %}
+            <a href="{{ url_for('main.ebook_detail', ebook_id=ebook.id) }}" class="book-card ebook-card">
+                <div class="book-card-image">
+                    <img 
+                        src="{{ ebook.image_url or url_for('static', filename='images/default-book.jpg') }}" 
+                        alt="{{ ebook.title }}"
+                        loading="lazy"
+                    >
+                    <div class="book-card-overlay">
+                        <span class="quick-view-btn">Read Now</span>
+                    </div>
+                    {% set txt_format = None %}
+                    {% for fmt in ebook.formats %}
+                        {% if fmt.file_format|upper == 'TXT' %}
+                            {% set txt_format = fmt %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if txt_format %}
+                    <span class="ebook-format-badge">TXT</span>
+                    {% else %}
+                    <span class="ebook-format-badge" style="opacity: 0.5;">N/A</span>
+                    {% endif %}
+                </div>
+                <div class="book-card-content">
+                    <h3 class="book-card-title">{{ ebook.title }}</h3>
+                    <p class="book-card-author">{{ ebook.author }}</p>
+                    <div class="book-card-meta">
+                        {# Only show TXT format badge #}
+                        {% set txt_format = None %}
+                        {% for fmt in ebook.formats %}
+                            {% if fmt.file_format|upper == 'TXT' %}
+                                {% set txt_format = fmt %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if txt_format %}
+                            <div class="format-badges">
+                                <span class="badge">TXT</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if pagination and (pagination.pages > 1) %}
+        <nav class="pagination" aria-label="E-books pagination" style="margin-top: 1.5rem; display: flex; gap: .5rem; justify-content: center;">
+            {% if pagination.has_prev %}
+            <a class="btn" href="{{ url_for('main.list_ebooks', page=pagination.prev_num, q=search_term) }}">Previous</a>
+            {% else %}
+            <span class="btn" style="pointer-events:none; opacity:.5;">Previous</span>
+            {% endif %}
+
+            <span style="display:flex; align-items:center; padding: .5rem 1rem;">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+
+            {% if pagination.has_next %}
+            <a class="btn" href="{{ url_for('main.list_ebooks', page=pagination.next_num, q=search_term) }}">Next</a>
+            {% else %}
+            <span class="btn" style="pointer-events:none; opacity:.5;">Next</span>
+            {% endif %}
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📱</div>
+            <h2 class="empty-title">No E-books Found</h2>
+            <p class="empty-description">
+                {% if request.args.get('q') %}
+                    No results for "{{ request.args.get('q') }}". Try different keywords.
+                {% else %}
+                    No e-books are currently available. Please check back later.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('main.list_ebooks') }}" class="btn btn-primary">
+                <span>Clear Filters</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

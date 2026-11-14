@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Confirm Logout{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 2rem auto; text-align:center;">
+  <h1>Sign out?</h1>
+  <p>You're about to log out of your account.</p>
+  <div style="display:flex; gap:.75rem; justify-content:center; margin-top:1rem;">
+    <a class="btn" href="{{ url_for('main.landing_page') }}">Cancel</a>
+    <a class="btn btn-primary" href="{{ url_for('main.logout') }}">Logout</a>
+  </div>
+</div>
+{% endblock %}

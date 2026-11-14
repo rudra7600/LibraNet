@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Upgrade Required{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 720px; margin: 2rem auto;">
+  <div style="background: #fff; border:1px solid #e5e7eb; border-radius: 12px; padding: 2rem; text-align:center;">
+    <div style="font-size: 2.5rem;">🔒</div>
+    <h1 style="margin: .5rem 0 0; font-size: 1.75rem;">Upgrade Required</h1>
+    <p style="color:#6b7280; margin-top: .5rem;">
+      Your current plan doesn't include access to {{ feature or 'this feature' }}.
+    </p>
+    <div style="margin-top: 1.25rem; display:flex; gap:.75rem; justify-content:center;">
+      <a href="{{ url_for('main.subscriptions') }}" class="btn btn-primary">View Plans</a>
+      <a href="{{ request.referrer or url_for('main.landing_page') }}" class="btn">Go Back</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

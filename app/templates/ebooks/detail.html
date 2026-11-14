@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ebook.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/book-detail.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ebooks.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="book-detail ebook-detail">
+    <div class="container">
+        <a href="{{ url_for('main.list_ebooks') }}" class="back-link">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            <span>Back to E-books</span>
+        </a>
+        
+        <div class="book-detail-grid">
+            <!-- Book Cover -->
+            <div class="book-cover-section">
+                <div class="book-cover-wrapper">
+                    <div class="book-cover">
+                        <img 
+                            src="{{ ebook.image_url or url_for('static', filename='images/default-book.jpg') }}" 
+                            alt="{{ ebook.title }}"
+                        >
+                    </div>
+                    <div class="availability-badge available">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Digital Copy</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Book Info -->
+            <div class="book-info-section">
+                <h1 class="book-title">{{ ebook.title }}</h1>
+                <p class="book-author">by {{ ebook.author }}</p>
+                
+                <div class="book-meta-grid">
+                    <div class="meta-item">
+                        <span class="meta-label">Format</span>
+                        <span class="meta-value">
+                            {% if txt_format %}
+                                <span class="badge">TXT</span>
+                            {% else %}
+                                <span class="badge badge-inactive">Not Available</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                {% if ebook.summary %}
+                <div class="book-description">
+                    <h2 class="description-title">Description</h2>
+                    <p class="description-text">{{ ebook.summary }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="ebook-actions">
+                    {% if txt_format %}
+                    <a href="{{ url_for('main.read_ebook', ebook_id=ebook.id) }}" class="btn btn-primary read-online-btn">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <span>Read Online</span>
+                    </a>
+                    <a href="{{ url_for('main.download_ebook', ebook_id=ebook.id) }}" class="btn btn-secondary download-btn">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span>Download</span>
+                    </a>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 8px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        TXT format not available for this ebook.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

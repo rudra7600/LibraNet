@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="LibraNet - Smart Library Management System">
+    <meta name="author" content="LibraNet">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>{% block title %}LibraNet{% endblock %} - Library Management</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/logo.svg') }}">
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reset.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cards.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Theme Script - Load early to prevent flash -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    
+    <style>
+        /* Global Loading Spinner */
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            opacity: 1;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .page-loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .loader-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loader-text {
+            margin-top: 20px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        .loader-logo {
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .loader-logo svg {
+            width: 40px;
+            height: 40px;
+            color: #6366f1;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Global Page Loader -->
+    <div class="page-loader" id="pageLoader">
+        <div class="loader-logo">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>LibraNet</span>
+        </div>
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Loading...</div>
+    </div>
+    
+    {% if 'login' not in request.endpoint and 'register' not in request.endpoint %}
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar">
+            <!-- Logo -->
+            <a href="{{ url_for('main.landing_page') }}" class="navbar-logo">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>LibraNet</span>
+            </a>
+            
+            <!-- Search -->
+            <div class="navbar-search">
+                <form action="{{ url_for('main.search') }}" method="GET" class="search-wrapper">
+                    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="search" name="q" placeholder="Search books, authors..." class="search-input" aria-label="Search">
+                    <kbd class="search-kbd">/</kbd>
+                </form>
+            </div>
+            
+            <!-- Navigation -->
+            <ul class="navbar-nav">
+                <!-- Desktop: Show Books, E-books, Audiobooks -->
+                <!-- Mobile: Show all items in hamburger menu -->
+                <li class="desktop-nav-item">
+                    <a href="{{ url_for('main.list_books') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span>Books</span>
+                    </a>
+                </li>
+                <li class="desktop-nav-item">
+                    <a href="{{ url_for('main.list_ebooks') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span>E-books</span>
+                    </a>
+                </li>
+                <li class="desktop-nav-item">
+                    <a href="{{ url_for('main.list_audiobooks') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                        </svg>
+                        <span>Audiobooks</span>
+                    </a>
+                </li>
+                
+                {% if current_user.is_authenticated %}
+                <!-- Mobile: All items -->
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.list_books') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span>Books</span>
+                    </a>
+                </li>
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.list_ebooks') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span>E-books</span>
+                    </a>
+                </li>
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.list_audiobooks') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                        </svg>
+                        <span>Audiobooks</span>
+                    </a>
+                </li>
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.my_loans') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                        </svg>
+                        <span>My Library</span>
+                    </a>
+                </li>
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.my_bag') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                        </svg>
+                        <span>My Bag</span>
+                        {% if current_user.bag_items and current_user.bag_items.count() > 0 %}
+                        <span class="cart-count">{{ current_user.bag_items.count() }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.profile') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        <span>Profile</span>
+                    </a>
+                </li>
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.subscriptions') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                        </svg>
+                        <span>Subscription</span>
+                    </a>
+                </li>
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.my_listings') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                        <span>My Listings</span>
+                    </a>
+                </li>
+                <li class="mobile-only">
+                    <button type="button" class="nav-link theme-toggle-mobile" id="theme-toggle-mobile" aria-label="Toggle theme">
+                        <svg class="sun-icon-mobile" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <svg class="moon-icon-mobile" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                        <span class="theme-label">Dark Mode</span>
+                    </button>
+                </li>
+                <li class="mobile-only">
+                    <a href="{{ url_for('main.logout') }}" class="nav-link">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        <span>Logout</span>
+                    </a>
+                </li>
+                
+                <!-- Desktop: Theme Toggle -->
+                <li class="desktop-nav-item">
+                    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+                        <div class="theme-toggle-slider">
+                            <svg class="sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                            <svg class="moon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                            </svg>
+                        </div>
+                    </button>
+                </li>
+                
+                <!-- Desktop: User Menu Dropdown -->
+                <li class="user-menu desktop-nav-item">
+                    <button class="user-button" id="userMenuButton" aria-label="User menu">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                    <div class="dropdown-menu" id="userDropdown">
+                        <a href="{{ url_for('main.my_loans') }}" class="dropdown-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                            </svg>
+                            <span>My Library</span>
+                        </a>
+                        <a href="{{ url_for('main.my_bag') }}" class="dropdown-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                            </svg>
+                            <span>My Bag</span>
+                            {% if current_user.bag_items and current_user.bag_items.count() > 0 %}
+                            <span class="badge">{{ current_user.bag_items.count() }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('main.profile') }}" class="dropdown-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            <span>Profile</span>
+                        </a>
+                        <a href="{{ url_for('main.subscriptions') }}" class="dropdown-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                            <span>Subscriptions</span>
+                        </a>
+                        <a href="{{ url_for('main.my_listings') }}" class="dropdown-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            <span>My Listings</span>
+                        </a>
+                        <a href="{{ url_for('main.add_physical_book') }}" class="dropdown-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            <span> Add Book</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('main.logout') }}" class="dropdown-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </li>
+                {% else %}
+                <li>
+                    <a href="{{ url_for('main.login') }}" class="nav-link">Sign in</a>
+                </li>
+                <li>
+                    <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-sm">Sign up</a>
+                </li>
+                {% endif %}
+            </ul>
+            
+            <!-- Mobile Toggle -->
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </button>
+        </nav>
+    </header>
+    {% endif %}
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">
+                <svg class="flash-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {% if category == 'success' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    {% elif category == 'error' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    {% endif %}
+                </svg>
+                <span class="flash-message">{{ message }}</span>
+                <button class="flash-close" onclick="this.parentElement.remove()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    
+    {% if 'login' not in request.endpoint and 'register' not in request.endpoint %}
+    <!-- Footer -->
+    {% include 'footer.html' %}
+    {% endif %}
+ 
+
+    <style>
+      {% if 'login' in request.endpoint or 'register' in request.endpoint %}
+          body {
+              padding-top: 0 !important;
+          }
+          main.container {
+              padding: 0;
+              max-width: none;
+          }
+      {% endif %}
+
+      /* Locked link styling */
+      .nav-link-locked, .dropdown-item.nav-link-locked {
+          opacity: 0.7;
+          position: relative;
+          cursor: pointer;
+      }
+
+      .nav-link-locked:hover, .dropdown-item.nav-link-locked:hover {
+          opacity: 0.9;
+          background: rgba(187, 128, 9, 0.15);
+          color: #d29922;
+      }
+
+      .nav-link-locked .fa-lock, .dropdown-item.nav-link-locked .fa-lock {
+          margin-left: 4px;
+      }
+
+      /* Flash messages styling */
+      .flashes {
+          position: fixed;
+          top: 100px;
+          right: 20px;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          max-width: 400px;
+      }
+
+      .alert {
+          padding: 12px 16px;
+          border-radius: 6px;
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          border: 1px solid transparent;
+          animation: slideInRight 0.3s ease-out;
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+          font-size: 14px;
+      }
+
+      @keyframes slideInRight {
+          from {
+              opacity: 0;
+              transform: translateX(100px);
+          }
+          to {
+              opacity: 1;
+              transform: translateX(0);
+          }
+      }
+
+      @keyframes slideOutRight {
+          from {
+              opacity: 1;
+              transform: translateX(0);
+          }
+          to {
+              opacity: 0;
+              transform: translateX(100px);
+          }
+      }
+
+      .alert i {
+          font-size: 16px;
+      }
+
+      .alert-success {
+          background-color: rgba(46, 160, 67, 0.15);
+          color: #3fb950;
+          border-color: rgba(46, 160, 67, 0.4);
+      }
+
+      .alert-success i {
+          color: #3fb950;
+      }
+
+      .alert-danger {
+          background-color: rgba(248, 81, 73, 0.15);
+          color: #f85149;
+          border-color: rgba(248, 81, 73, 0.4);
+      }
+
+      .alert-danger i {
+          color: #f85149;
+      }
+
+      .alert-warning {
+          background-color: rgba(187, 128, 9, 0.15);
+          color: #d29922;
+          border-color: rgba(187, 128, 9, 0.4);
+      }
+
+      .alert-warning i {
+          color: #d29922;
+      }
+
+      .alert-info {
+          background-color: rgba(56, 139, 253, 0.15);
+          color: #58a6ff;
+          border-color: rgba(56, 139, 253, 0.4);
+      }
+
+      .alert-info i {
+          color: #58a6ff;
+      }
+
+      @media (max-width: 768px) {
+          .flashes {
+              top: 70px;
+              right: 10px;
+              left: 10px;
+              max-width: none;
+          }
+      }
+    </style>
+
+    <script>
+      // Mobile Menu Toggle
+      const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+      const navMenu = document.getElementById("navMenu");
+
+      mobileMenuToggle?.addEventListener("click", function () {
+        this.classList.toggle("active");
+        navMenu.classList.toggle("active");
+      });
+
+      // Dropdown Menu Toggle
+      const dropdownToggles = document.querySelectorAll(".dropdown-toggle");
+      dropdownToggles.forEach((toggle) => {
+        toggle.addEventListener("click", function (e) {
+          e.preventDefault();
+          const dropdown = this.closest(".nav-dropdown");
+          const wasOpen = dropdown.classList.contains("open");
+          document.querySelectorAll(".nav-dropdown").forEach((other) => {
+            other.classList.remove("open");
+          });
+          if (!wasOpen) {
+            dropdown.classList.add("open");
+          }
+        });
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest(".nav-dropdown")) {
+          document.querySelectorAll(".nav-dropdown").forEach((dropdown) => {
+            dropdown.classList.remove("open");
+          });
+        }
+      });
+
+      // Close mobile menu when clicking a link
+      document.querySelectorAll(".nav-link:not(.dropdown-toggle), .dropdown-item").forEach((link) => {
+          link.addEventListener("click", function () {
+            mobileMenuToggle?.classList.remove("active");
+            navMenu?.classList.remove("active");
+          });
+        });
+
+      // Auto-dismiss flash messages after 5 seconds
+      setTimeout(function () {
+        const alerts = document.querySelectorAll(".alert");
+        alerts.forEach((alert) => {
+          alert.style.animation = "slideOutRight 0.3s ease-out forwards";
+          setTimeout(() => alert.remove(), 300);
+        });
+      }, 5000);
+
+      // Handle locked nav links
+      document.querySelectorAll(".nav-link-locked, .dropdown-item.nav-link-locked").forEach((link) => {
+          link.addEventListener("click", function (e) {
+            const hasLock = this.querySelector(".fa-lock");
+            if (hasLock) {
+              e.preventDefault();
+              const message = document.createElement("div");
+              message.className = "alert alert-warning";
+              message.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Upgrade your plan to access this feature!</span>';
+              let flashesContainer = document.querySelector(".flashes");
+              if (!flashesContainer) {
+                flashesContainer = document.createElement("div");
+                flashesContainer.className = "flashes";
+                document.body.appendChild(flashesContainer);
+              }
+              flashesContainer.appendChild(message);
+              setTimeout(() => {
+                message.style.animation = "slideOutRight 0.3s ease-out forwards";
+                setTimeout(() => message.remove(), 300);
+              }, 3000);
+            }
+          });
+        });
+    </script>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+    
+    <!-- Page Loader Script -->
+    <script>
+    (function () {
+        const loader = document.getElementById('pageLoader');
+
+        function hideLoader() {
+            if (loader) {
+                loader.classList.add('hidden');
+            }
+        }
+
+        // Hide loader after the page finishes loading.
+        window.addEventListener('load', hideLoader);
+
+        // Also hide it when the browser restores a page using Back/Forward.
+        window.addEventListener('pageshow', hideLoader);
+
+        // Safety fallback in case the load event already happened.
+        if (document.readyState === 'complete') {
+            hideLoader();
+        }
+
+        // Show loader only when navigating to another same-origin page.
+        document.addEventListener('click', function (event) {
+            const link = event.target.closest('a[href]');
+            if (!link) return;
+
+            if (
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey ||
+                event.altKey ||
+                link.target === '_blank' ||
+                link.hasAttribute('download')
+            ) {
+                return;
+            }
+
+            const url = new URL(link.href, window.location.href);
+
+            if (
+                url.origin === window.location.origin &&
+                url.href !== window.location.href &&
+                !url.hash
+            ) {
+                if (loader) {
+                    loader.classList.remove('hidden');
+                }
+            }
+        });
+    })();
+</script>
+    
+    <!-- Floating AI Chatbot Widget -->
+    {% if current_user.is_authenticated %}
+    <div class="chat-widget-container">
+        <!-- Chat Button -->
+        <button class="chat-widget-button" id="chatWidgetButton" title="AI Assistant">
+            <svg class="chat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+            </svg>
+            <svg class="close-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            <span class="chat-badge" id="chatBadge">AI</span>
+        </button>
+
+        <!-- Chat Window -->
+        <div class="chat-widget-window" id="chatWidgetWindow">
+            <div class="chat-widget-header">
+                <div class="chat-widget-title">
+                    <div class="chat-avatar">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3>AI Assistant</h3>
+                        <span class="status-online">Online</span>
+                    </div>
+                </div>
+                <button class="chat-widget-close" id="chatWidgetClose" title="Close">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="chat-widget-messages" id="chatWidgetMessages">
+                <div class="chat-welcome-message">
+                    <div class="welcome-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h4>Hello, {{ current_user.name }}! 👋</h4>
+                    <p>I'm your AI library assistant. Ask me anything about books, authors, or get recommendations!</p>
+                </div>
+            </div>
+
+            <div class="chat-widget-input">
+                <form id="chatWidgetForm">
+                    <input type="text" id="chatWidgetInput" placeholder="Ask me anything..." autocomplete="off">
+                    <button type="submit" id="chatWidgetSend" title="Send">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </button>
+                </form>
+                <div class="chat-widget-typing" id="chatWidgetTyping">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Chat Widget Styles */
+        .chat-widget-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .chat-widget-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .chat-widget-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        .chat-widget-button svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .chat-widget-button .close-icon {
+            display: none;
+            position: absolute;
+        }
+
+        .chat-widget-button.active .chat-icon {
+            display: none;
+        }
+
+        .chat-widget-button.active .close-icon {
+            display: block;
+        }
+
+        .chat-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-widget-window {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            width: 380px;
+            height: 550px;
+            background: var(--surface-color, #ffffff);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        .chat-widget-window.active {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-widget-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-widget-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-avatar svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .chat-widget-title h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status-online {
+            font-size: 12px;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-online::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .chat-widget-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .chat-widget-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-widget-close svg {
+            width: 20px;
+            height: 20px;
+            color: white;
+        }
+
+        .chat-widget-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: var(--background-color, #f9fafb);
+        }
+
+        .chat-welcome-message {
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        .welcome-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .welcome-icon svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        .chat-welcome-message h4 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: var(--text-primary, #1f2937);
+        }
+
+        .chat-welcome-message p {
+            margin: 0;
+            color: var(--text-secondary, #6b7280);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .chat-message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .chat-message.user .chat-message-avatar {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .chat-message-avatar svg {
+            width: 18px;
+            height: 18px;
+            color: white;
+        }
+
+        .chat-message-content {
+            max-width: 70%;
+        }
+
+        .chat-message-bubble {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 16px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            word-wrap: break-word;
+        }
+
+        .chat-message.user .chat-message-bubble {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+        }
+
+        .chat-message-time {
+            font-size: 11px;
+            color: var(--text-secondary, #9ca3af);
+            margin-top: 4px;
+            padding: 0 4px;
+        }
+
+        .chat-widget-input {
+            padding: 16px;
+            background: var(--surface-color, #ffffff);
+            border-top: 1px solid var(--border-color, #e5e7eb);
+            position: relative;
+        }
+
+        .chat-widget-input form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-widget-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: var(--background-color, #f9fafb);
+        }
+
+        .chat-widget-input input:focus {
+            border-color: #6366f1;
+            background: white;
+        }
+
+        .chat-widget-input button {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .chat-widget-input button:hover {
+            transform: scale(1.05);
+        }
+
+        .chat-widget-input button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-widget-input button svg {
+            width: 20px;
+            height: 20px;
+            color: white;
+        }
+
+        .chat-widget-typing {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            margin-top: 8px;
+        }
+
+        .chat-widget-typing.active {
+            display: flex;
+        }
+
+        .chat-widget-typing span {
+            width: 8px;
+            height: 8px;
+            background: #6366f1;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .chat-widget-typing span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .chat-widget-typing span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .chat-widget-container {
+                bottom: 16px;
+                right: 16px;
+            }
+
+            .chat-widget-button {
+                width: 56px;
+                height: 56px;
+            }
+
+            .chat-widget-button svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            .chat-widget-window {
+                width: calc(100vw - 32px);
+                height: calc(100vh - 120px);
+                bottom: 76px;
+                right: -8px;
+            }
+        }
+
+        /* Dark Theme Support */
+        [data-theme="dark"] .chat-widget-window {
+            background: #1e293b;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="dark"] .chat-widget-messages {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .chat-message-bubble {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .chat-message.user .chat-message-bubble {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+        }
+
+        [data-theme="dark"] .chat-widget-input {
+            background: #1e293b;
+            border-top-color: #334155;
+        }
+
+        [data-theme="dark"] .chat-widget-input input {
+            background: #0f172a;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .chat-widget-input input:focus {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .chat-welcome-message h4 {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .chat-welcome-message p {
+            color: #94a3b8;
+        }
+    </style>
+
+    <script>
+        // Chat Widget Functionality
+        (function() {
+            const chatButton = document.getElementById('chatWidgetButton');
+            const chatWindow = document.getElementById('chatWidgetWindow');
+            const chatClose = document.getElementById('chatWidgetClose');
+            const chatForm = document.getElementById('chatWidgetForm');
+            const chatInput = document.getElementById('chatWidgetInput');
+            const chatMessages = document.getElementById('chatWidgetMessages');
+            const chatTyping = document.getElementById('chatWidgetTyping');
+            const chatSendBtn = document.getElementById('chatWidgetSend');
+
+            if (!chatButton) return;
+
+            // Toggle chat window
+            chatButton.addEventListener('click', function() {
+                chatWindow.classList.toggle('active');
+                chatButton.classList.toggle('active');
+                if (chatWindow.classList.contains('active')) {
+                    chatInput.focus();
+                }
+            });
+
+            chatClose.addEventListener('click', function() {
+                chatWindow.classList.remove('active');
+                chatButton.classList.remove('active');
+            });
+
+            // Handle form submission
+            chatForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const message = chatInput.value.trim();
+                if (!message) return;
+
+                // Add user message
+                addMessage(message, 'user');
+                chatInput.value = '';
+                chatInput.disabled = true;
+                chatSendBtn.disabled = true;
+
+                // Show typing indicator
+                chatTyping.classList.add('active');
+
+                try {
+                    // Send message to backend
+                    const response = await fetch('{{ url_for("main.chat_message") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: message })
+                    });
+
+                    const data = await response.json();
+
+                    // Hide typing indicator
+                    chatTyping.classList.remove('active');
+
+                    // Add bot response
+                    if (data.success && data.response) {
+                        addMessage(data.response, 'bot');
+                    } else {
+                        addMessage(data.error || 'Sorry, I encountered an error. Please try again.', 'bot');
+                    }
+                } catch (error) {
+                    console.error('Chat error:', error);
+                    chatTyping.classList.remove('active');
+                    addMessage('Sorry, I\'m having trouble connecting. Please try again later.', 'bot');
+                } finally {
+                    chatInput.disabled = false;
+                    chatSendBtn.disabled = false;
+                    chatInput.focus();
+                }
+            });
+
+            // Add message to chat
+            function addMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${sender}`;
+                
+                const avatar = document.createElement('div');
+                avatar.className = 'chat-message-avatar';
+                
+                if (sender === 'bot') {
+                    avatar.innerHTML = `
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                    `;
+                } else {
+                    avatar.innerHTML = `
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    `;
+                }
+                
+                const content = document.createElement('div');
+                content.className = 'chat-message-content';
+                
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-message-bubble';
+                bubble.textContent = text;
+                
+                const time = document.createElement('div');
+                time.className = 'chat-message-time';
+                time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                content.appendChild(bubble);
+                content.appendChild(time);
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(content);
+                
+                // Remove welcome message if it exists
+                const welcomeMsg = chatMessages.querySelector('.chat-welcome-message');
+                if (welcomeMsg) {
+                    welcomeMsg.remove();
+                }
+                
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Enter key to send (Shift+Enter for new line)
+            chatInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    chatForm.dispatchEvent(new Event('submit'));
+                }
+            });
+        })();
+    </script>
+    {% endif %}
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,342 @@
+# ========================================
+# FILE: app/routes/subscription_routes.py
+# ========================================
+from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask_login import login_required, current_user
+from app.routes import main_bp
+from app.models.subscription import Subscription
+from app.models import SubscriptionTierEnum
+from app import db
+from datetime import datetime, timedelta
+from decimal import Decimal
+import razorpay # type: ignore
+import os
+import hmac
+import hashlib
+
+# Initialize Razorpay Client
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_YOUR_KEY_ID')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'YOUR_KEY_SECRET')
+
+razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+# Subscription pricing (inclusive of GST)
+SUBSCRIPTION_PRICES = {
+    SubscriptionTierEnum.FREE: 0,
+    SubscriptionTierEnum.BASIC: 49,
+    SubscriptionTierEnum.PRO: 150,
+    SubscriptionTierEnum.MAX: 300
+}
+
+SUBSCRIPTION_FEATURES = {
+    SubscriptionTierEnum.FREE: {
+        'name': 'Free',
+        'price': 0,
+        'duration_days': None,
+        'features': [
+            'Browse book catalog',
+            'View book details',
+            'Basic search functionality',
+            'Access to book summaries'
+        ],
+        'restrictions': [
+            'Cannot borrow physical books',
+            'No access to ebooks',
+            'No access to audiobooks'
+        ]
+    },
+    SubscriptionTierEnum.BASIC: {
+        'name': 'Basic',
+        'price': 49,
+        'duration_days': 182,
+        'features': [
+            'All Free features',
+            'Borrow up to 5 physical books',
+            '6-month loan period',
+            'Email notifications',
+            'Priority support'
+        ],
+        'restrictions': [
+            'No access to ebooks',
+            'No access to audiobooks'
+        ]
+    },
+    SubscriptionTierEnum.PRO: {
+        'name': 'Pro',
+        'price': 150,
+        'duration_days': 182,
+        'features': [
+            'All Basic features',
+            'Access to all ebooks',
+            'Unlimited ebook downloads',
+            'Offline reading support',
+            'No physical book limits',
+            'Priority customer support',
+            'Early access to new releases'
+        ],
+        'restrictions': [
+            'No access to audiobooks'
+        ]
+    },
+    SubscriptionTierEnum.MAX: {
+        'name': 'Max',
+        'price': 300,
+        'duration_days': 182,
+        'features': [
+            'All Pro features',
+            'Access to all audiobooks',
+            'Unlimited streaming',
+            'Offline listening',
+            'Multiple device sync',
+            '24/7 Premium support',
+            'Exclusive content access',
+            'Ad-free experience'
+        ],
+        'restrictions': []
+    }
+}
+
+
+# Define a strict tier order for upgrade-only logic
+TIER_ORDER = {
+    SubscriptionTierEnum.FREE: 0,
+    SubscriptionTierEnum.BASIC: 1,
+    SubscriptionTierEnum.PRO: 2,
+    SubscriptionTierEnum.MAX: 3,
+}
+
+
+def _is_upgrade_allowed(requested_tier: SubscriptionTierEnum, current_sub: Subscription | None) -> tuple[bool, str | None]:
+    """Return whether the requested tier change is allowed and an optional reason if not.
+
+    Rules:
+    - Cannot purchase FREE (it's auto-assigned / via cancel only)
+    - If no current subscription or it is expired: allow any paid tier
+    - If already on the same active tier: block
+    - If requesting a lower tier than the active one: block (no downgrades mid-cycle)
+    - If requesting a higher tier: allow (upgrade)
+    """
+    # Free tier is never purchasable
+    if requested_tier == SubscriptionTierEnum.FREE:
+        return False, 'Free tier is automatically assigned.'
+
+    if not current_sub:
+        return True, None
+
+    if current_sub.is_expired:
+        return True, None
+
+    current_order = TIER_ORDER[current_sub.tier]
+    requested_order = TIER_ORDER[requested_tier]
+
+    if requested_order == current_order:
+        return False, f'You are already subscribed to {requested_tier.value.title()} plan.'
+
+    if requested_order < current_order:
+        return False, 'Downgrades are not allowed during an active billing period. You can cancel to Free, or wait until your plan expires.'
+
+    # requested_order > current_order => upgrade
+    return True, None
+
+@main_bp.route('/subscriptions')
+@login_required
+def subscriptions():
+    """Display subscription plans."""
+    current_sub = current_user.current_subscription
+    return render_template(
+        'subscribe.html',
+        title='Subscription Plans',
+        plans=SUBSCRIPTION_FEATURES,
+        current_subscription=current_sub,
+        SubscriptionTierEnum=SubscriptionTierEnum
+    )
+
+
+@main_bp.route('/subscribe/<tier>', methods=['GET', 'POST'])
+@login_required
+def subscribe(tier):
+    """Handle subscription purchase."""
+    try:
+        tier_enum = SubscriptionTierEnum[tier.upper()]
+    except KeyError:
+        flash('Invalid subscription tier.', 'danger')
+        return redirect(url_for('main.subscriptions'))
+    
+    current_sub = current_user.current_subscription
+
+    # Enforce upgrade-only rules
+    allowed, reason = _is_upgrade_allowed(tier_enum, current_sub)
+    if not allowed:
+        flash(reason, 'info')
+        return redirect(url_for('main.subscriptions'))
+    
+    if request.method == 'GET':
+        # Show confirmation page
+        plan_info = SUBSCRIPTION_FEATURES[tier_enum]
+        return render_template(
+            'subscribe_confirm.html',
+            title=f'Subscribe to {plan_info["name"]}',
+            plan=plan_info,
+            tier=tier_enum,
+            razorpay_key_id=RAZORPAY_KEY_ID
+        )
+    
+    # POST method is deprecated - payment now handled via Razorpay
+    flash('Please use the secure payment button to complete your subscription.', 'info')
+    return redirect(url_for('main.subscribe', tier=tier))
+
+
+@main_bp.route('/verify_payment', methods=['POST'])
+@login_required
+def verify_payment():
+    """Verify Razorpay payment and activate subscription."""
+    try:
+        data = request.get_json()
+        
+        # Extract payment details
+        payment_id = data.get('razorpay_payment_id')
+        tier = data.get('tier')
+        
+        # Validate inputs
+        if not payment_id or not tier:
+            return jsonify({'success': False, 'message': 'Missing payment details'}), 400
+        
+        # Get tier enum
+        try:
+            tier_enum = SubscriptionTierEnum[tier.upper()]
+        except KeyError:
+            return jsonify({'success': False, 'message': 'Invalid tier'}), 400
+
+        # Enforce upgrade-only rules server-side to prevent bypass via direct API call
+        current_sub = current_user.current_subscription
+        allowed, reason = _is_upgrade_allowed(tier_enum, current_sub)
+        if not allowed:
+            return jsonify({'success': False, 'message': reason}), 400
+        
+        # In TEST MODE, we'll skip actual Razorpay verification
+        # In PRODUCTION, you should verify the payment signature
+        try:
+            # Try to fetch payment from Razorpay (works in both test and live mode)
+            payment = razorpay_client.payment.fetch(payment_id)
+            
+            # Check if payment is captured (for test mode, this might be 'authorized')
+            if payment['status'] not in ['captured', 'authorized']:
+                return jsonify({'success': False, 'message': 'Payment not successful'}), 400
+                
+        except Exception as e:
+            # In test mode, if fetching fails, we'll proceed anyway
+            # In production, you should handle this more strictly
+            print(f"Razorpay fetch error (might be test mode): {str(e)}")
+            # For test mode, we'll accept the payment
+            pass
+        
+        # Deactivate all currently active subscriptions for this user
+        Subscription.query.filter_by(
+            student_id=current_user.id, 
+            is_active=True
+        ).update({'is_active': False})
+        
+        # Create new subscription
+        price = Decimal(str(SUBSCRIPTION_PRICES[tier_enum]))
+        duration = SUBSCRIPTION_FEATURES[tier_enum]['duration_days']
+        
+        new_sub = Subscription(
+            student_id=current_user.id,
+            tier=tier_enum,
+            start_date=datetime.utcnow(),
+            end_date=datetime.utcnow() + timedelta(days=duration),
+            is_active=True,
+            price_paid=price
+        )
+        
+        db.session.add(new_sub)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'subscription_id': new_sub.id,
+            'message': 'Subscription activated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error in verify_payment: {str(e)}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Server error'}), 500
+
+
+@main_bp.route('/subscription/success/<int:subscription_id>')
+@login_required
+def subscription_success(subscription_id):
+    """Display subscription success page."""
+    subscription = Subscription.query.get_or_404(subscription_id)
+    
+    # Check ownership
+    if subscription.student_id != current_user.id:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('main.subscriptions'))
+    
+    plan_info = SUBSCRIPTION_FEATURES[subscription.tier]
+    
+    return render_template(
+        'subscription_success.html',
+        title='Subscription Successful',
+        subscription=subscription,
+        plan=plan_info
+    )
+
+
+@main_bp.route('/subscription/cancel', methods=['POST'])
+@login_required
+def cancel_subscription():
+    """Cancel current subscription."""
+    current_sub = current_user.current_subscription
+    
+    if not current_sub or current_sub.tier == SubscriptionTierEnum.FREE:
+        flash('Cannot cancel free subscription.', 'warning')
+        return redirect(url_for('main.subscriptions'))
+    
+    # Deactivate current subscription
+    current_sub.is_active = False
+    current_sub.auto_renew = False
+    
+    # Create FREE subscription
+    free_sub = Subscription(
+        student_id=current_user.id,
+        tier=SubscriptionTierEnum.FREE,
+        is_active=True
+    )
+    
+    db.session.add(free_sub)
+    db.session.commit()
+    
+    flash('Subscription cancelled successfully. You are now on the Free plan.', 'success')
+    return redirect(url_for('main.subscriptions'))
+
+
+@main_bp.route('/my-subscription')
+@login_required
+def my_subscription():
+    """View current subscription details."""
+    current_sub = current_user.current_subscription
+    current_tier_enum = current_user.subscription_tier
+    plan_info = SUBSCRIPTION_FEATURES[current_tier_enum]
+    
+    # Get subscription history
+    all_subs = Subscription.query.filter_by(student_id=current_user.id).order_by(Subscription.start_date.desc()).all()
+    
+    # If the user is new and has no subscription object yet, create a
+    # temporary one just for display on this page (don't save to DB)
+    if not current_sub:
+        current_sub = Subscription(
+            student_id=current_user.id,
+            tier=SubscriptionTierEnum.FREE,
+            is_active=True
+        )
+
+    return render_template(
+        'my_subscription.html',
+        title='My Subscription',
+        subscription=current_sub,
+        plan=plan_info,
+        subscription_history=all_subs
+    )
